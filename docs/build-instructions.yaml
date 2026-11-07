@@ -1,0 +1,145 @@
+specification_version: '1.0'
+project:
+  name: commons-image-dl
+  repository: https://github.com/menj/commons-image-dl
+  entrypoint: commons_image_dl.py
+  language: Python
+  minimum_python: '3.10'
+
+instruction: >-
+  Build and maintain a complete, runnable Python tool named commons_image_dl.py
+  that automatically discovers and downloads actual image files from Wikimedia
+  Commons. Implement working code, tests and documentation; do not stop at a
+  plan, pseudocode, a list of image URLs or an interactive selection interface.
+  Respect existing repository instructions and preserve unrelated work.
+
+automatic_behavior:
+  - A command starts discovery, filtering, selection and downloading without confirmation prompts.
+  - Download original files by default; use Commons thumbnail URLs when a width is requested.
+  - Save attribution and structured metadata alongside each downloaded file.
+  - Stop when the total requested count is satisfied, discovery is exhausted or the candidate budget is reached.
+  - Report incomplete runs honestly with a nonzero exit status and retained partial results.
+  - No API key or paid AI service is required for the core operation.
+  - Scheduled invocation is supported externally; do not install schedules implicitly.
+
+sources:
+  primary_api: https://commons.wikimedia.org/w/api.php
+  optional_enrichment_api: https://magnustools.toolforge.org/commonsapi/
+  references:
+    - https://commons.wikimedia.org/wiki/Commons:API/MediaWiki
+    - https://www.mediawiki.org/wiki/API:Imageinfo
+    - https://www.mediawiki.org/wiki/API:Search
+    - https://www.mediawiki.org/wiki/API:Etiquette
+    - https://commons.wikimedia.org/wiki/Commons:Commons_API
+  guidance:
+    - Use the primary MediaWiki Action API for discovery and image URLs; do not scrape search HTML.
+    - Verify API parameters against official documentation when changing integrations.
+    - Treat the historic Commons API license table as incomplete reference data, not an exhaustive registry.
+
+cli:
+  mutually_exclusive_sources:
+    query: Repeatable keyword search, restricted to file namespace 6.
+    queries_file: UTF-8 file with one query per line; ignore blank lines and comments.
+    category: Direct file members of a category, with an optional Category prefix.
+    file: Repeatable exact filenames, with or without a File prefix.
+    uploader: Files whose latest version was uploaded by a given Commons user.
+    near: Latitude and longitude with a configurable radius in metres.
+    random: Random file discovery with a hard candidate budget.
+  controls:
+    count: Total desired unique matching images across all supplied queries; default 10.
+    output: Download directory; default downloads.
+    width: Optional requested Commons thumbnail width.
+    min_width: Minimum original pixel width.
+    min_height: Minimum original pixel height.
+    formats: Downloaded raster MIME formats; default jpeg, png and webp.
+    license: Repeatable exact case-insensitive LicenseShortName allowlist.
+    language: Metadata language; default en.
+    max_candidates: Candidate budget including rejected and duplicate files; default 1000.
+    max_bytes: Streamed byte limit per downloaded image; default 52428800.
+    user_agent: Identifiable tool User-Agent with an operator override.
+    magnus: Optional metadata enrichment; failures do not block the primary download.
+    dry_run: Write a discovery manifest without downloading image bytes.
+
+api_implementation:
+  common_parameters:
+    action: query
+    format: json
+    formatversion: 2
+    maxlag: 5
+    prop: imageinfo
+    iiprop: url|size|mime|sha1|extmetadata|timestamp|user
+  search:
+    generator: search
+    gsrnamespace: 6
+    gsrsearch: '<query>'
+    gsrlimit: 20
+  other_generators:
+    category: categorymembers
+    uploader: allimages
+    nearby: geosearch
+    random: random
+  requirements:
+    - Preserve search relevance using the returned index rather than page-ID order.
+    - Pass all returned continuation keys unchanged and detect repeated continuation tokens.
+    - Deduplicate page IDs, including across repeated queries.
+    - Resolve exact filename redirects and skip missing or inaccessible files.
+    - Use thumburl and thumbmime for thumbnails; do not infer the output type from the original extension.
+    - Never silently replace a failed thumbnail request with a large original download.
+    - Filter non-image media; allow SVG sources only when downloading a supported raster thumbnail.
+  magnus:
+    image: '<filename without File: prefix>'
+    format: json
+    languages: en|default
+    sdc: ''
+    behavior: Preserve returned JSON separately; do not assume it matches the MediaWiki schema.
+
+metadata:
+  preserve:
+    - Page ID, title, source query and retrieval timestamp.
+    - File-description page URL, original URL and actual download URL.
+    - Original dimensions, downloaded dimensions and MIME types.
+    - Source SHA-1, upload timestamp, local filename, byte count and local SHA-256.
+    - Artist, Credit, ImageDescription, LicenseShortName, LicenseUrl and UsageTerms where supplied.
+    - All raw extmetadata, retaining unknown fields and null or absent values honestly.
+    - Optional Magnus response including structured captions and depicts data when available.
+  rules:
+    - Keep uploader and author separate; never substitute one for the other.
+    - Produce plain-text attribution with HTML decoded; preserve raw metadata separately.
+    - Do not treat Commons hosting as proof of public-domain status.
+    - Do not guess missing license terms or present metadata as a legal clearance.
+    - Retain license links so users can inspect attribution, ShareAlike and full-text requirements.
+
+reliability:
+  - Use bounded timeouts and request pacing with an identifiable User-Agent.
+  - Retry transient network failures, HTTP 429 and 5xx, and maxlag or rate-limit API errors.
+  - Honor Retry-After; stop cleanly if the requested pause exceeds the supported wait budget.
+  - Detect API errors returned inside successful HTTP responses and malformed JSON.
+  - Stream downloads to temporary files and enforce the maximum byte limit.
+  - Verify raster file contents and MIME before atomically publishing an image.
+  - Sanitize filenames, prevent path traversal, reject output symlinks and avoid overwriting unrelated files.
+  - Reuse existing files only after validating sidecar identity and the local checksum.
+  - Verified existing files count toward the requested total; document this clearly.
+  - Keep a per-run JSON manifest and per-image JSON and text sidecars.
+  - Clean up failed transfers; preserve successful images and actionable failure messages.
+  - Send progress to stderr and a compact machine-readable summary to stdout.
+
+acceptance_tests:
+  - Search pagination forwards every continuation key and retains relevance order.
+  - Duplicate, missing, wrong-format and undersized files do not consume the successful-image count.
+  - Thumbnail filenames reflect their downloaded MIME type.
+  - Valid images download with readable attribution and complete metadata sidecars.
+  - Repeat runs reuse intact images and reject corrupt local files without overwriting them.
+  - HTTP 429, maxlag, malformed JSON and optional enrichment outages are handled explicitly.
+  - Oversized and non-image responses leave no completed image files.
+  - Dry-run writes a manifest without downloading images.
+  - Candidate limits terminate partial runs with an incomplete status.
+  - Unit tests run offline; report live checks separately and never claim unperformed verification.
+
+deliverables:
+  - commons_image_dl.py
+  - pyproject.toml with a commons-image-dl console entry point
+  - requirements.txt
+  - README.md with installation, examples, limits, output format and exit codes
+  - tests/test_downloader.py
+  - .github/workflows/tests.yml
+  - docs/build-instructions.yaml

@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "commons-image-dl"
+version = "0.1.0"
+description = "Automatically search and download Wikimedia Commons images with attribution metadata"
+requires-python = ">=3.10"
+dependencies = ["requests>=2.32.4,<3", "Pillow>=11.3,<13"]
+readme = "README.md"
+
+[project.scripts]
+commons-image-dl = "commons_image_dl:main"
+
+[tool.setuptools]
+py-modules = ["commons_image_dl"]
