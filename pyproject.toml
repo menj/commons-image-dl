@@ -9,6 +9,12 @@ description = "Automatically search and download Wikimedia Commons images with a
 requires-python = ">=3.10"
 dependencies = ["requests>=2.32.4,<3", "Pillow>=11.3,<13"]
 readme = "README.md"
+authors = [{name = "MENJ"}]
+license = "GPL-3.0-only"
+license-files = ["LICENSE"]
+
+[project.urls]
+Repository = "https://github.com/menj/commons-image-dl"
 
 [project.scripts]
 commons-image-dl = "commons_image_dl:main"

@@ -1,3 +1,6 @@
+# Copyright (C) 2026 MENJ
+# Developed and coded by MENJ.
+# SPDX-License-Identifier: GPL-3.0-only
 import io
 import json
 import tempfile

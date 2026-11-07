@@ -1,5 +1,7 @@
 # commons-image-dl
 
+Developed and coded by **[MENJ](https://github.com/menj)**.
+
 Automatically search and download images from **Wikimedia Commons** using Python. A command selects matching files, downloads them, and saves attribution and source metadata without interactive selection. No API key is needed.
 
 ## Install
@@ -95,3 +97,14 @@ The reusable AI build specification is in [docs/build-instructions.yaml](docs/bu
 - [API etiquette](https://www.mediawiki.org/wiki/API:Etiquette)
 - [Magnus Commons API](https://magnustools.toolforge.org/commonsapi/)
 - [Historic Commons API license data](https://commons.wikimedia.org/wiki/Commons:Commons_API)
+
+## License and credits
+
+Copyright (C) 2026 MENJ.
+
+Developed and coded by **MENJ**. This software is licensed under the
+**GNU General Public License, version 3 only** (`GPL-3.0-only`).
+See [LICENSE](LICENSE) for the full terms.
+
+Downloaded Wikimedia Commons media retain their own licenses and attribution
+requirements, as recorded in the accompanying metadata.
