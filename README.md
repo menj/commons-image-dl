@@ -25,14 +25,14 @@ Use `commons-image-dl` after installation, or run `python commons_image_dl.py` f
 
 ```bash
 python commons_image_dl.py --query "Penang heritage buildings" --count 10
-python commons_image_dl.py --category "Mosques in Malaysia" --count 20 --width 1280
+python commons_image_dl.py --category "Mosques in Malaysia" --count 20
 python commons_image_dl.py --file "Sa-warthog.jpg" --count 1
 python commons_image_dl.py --near 3.139 101.687 --radius 2000 --count 5
 python commons_image_dl.py --uploader "FlickrLickr" --count 10
 python commons_image_dl.py --random --count 5
 ```
 
-Original files are downloaded by default. `--width` requests a Commons thumbnail; no local resizing or format conversion occurs. If a thumbnail is unavailable, the file is skipped. The width is a request to Commons, not a promise of exact output dimensions.
+Downloads always use the full-resolution original file supplied by Commons: the largest available size of the current file version. No thumbnails, resizing or format conversion are used. The former `--width` option has been removed; remove it from existing commands.
 
 Search results retain API relevance order. Category mode uses direct members only. Uploader mode means the uploader of the **latest file version**, not necessarily the photographer. Geographic discovery depends on Commons coordinates and may return fewer results than requested.
 
@@ -49,9 +49,9 @@ python commons_image_dl.py --query "Malaysia" --count 10 --dry-run
 
 `topics.txt` contains one query per line; blank lines and lines beginning with `#` are ignored. `--count` is the **total across all queries**, processed in their supplied order. Duplicated file page IDs count once per run. Earlier queries can fill the whole requested count.
 
-Filters use original dimensions and the downloaded file's MIME type. JPEG, PNG and WebP are enabled by default. GIF, TIFF and BMP are optional. SVG originals are not downloaded, but Commons-rendered PNG thumbnails of SVGs can be downloaded with `--width`. Videos, audio and PDFs are excluded. License matching uses the exact `LicenseShortName`, case-insensitively; repeat `--license` to allow multiple values. Missing license metadata is preserved rather than guessed; it will not pass a license filter.
+Filters use original dimensions and the downloaded file's MIME type. JPEG, PNG and WebP are enabled by default. GIF, TIFF and BMP are optional. SVG files are excluded because this tool validates supported raster originals. Videos, audio and PDFs are excluded. License matching uses the exact `LicenseShortName`, case-insensitively; repeat `--license` to allow multiple values. Missing license metadata is preserved rather than guessed; it will not pass a license filter.
 
-`--max-candidates` defaults to 1,000 and bounds discovery, including rejected and duplicate candidates. `--max-bytes` defaults to 50 MiB per download. Increase the candidate limit when restrictive filters produce too few images. There is no guarantee that Commons has enough matching images.
+`--max-candidates` defaults to 1,000 and bounds discovery, including rejected and duplicate candidates. There is no default download byte limit, so large originals are not excluded by the former 50 MiB cap. Set `--max-bytes` explicitly if needed; exceeding it fails the download without substituting a thumbnail. Increase the candidate limit when restrictive filters produce too few images. There is no guarantee that Commons has enough matching images.
 
 ## Output and repeat runs
 

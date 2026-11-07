@@ -51,15 +51,43 @@ class DownloaderTests(unittest.TestCase):
         self.assertIsNone(dl.record_for(page(), "test", self.args("--min-width", "900")))
         self.assertIsNone(dl.record_for({"missing": True}, "test", self.args()))
 
-    def test_thumbnail_uses_actual_mime_and_never_falls_back(self):
-        p = page(mime="image/svg+xml")
-        args = self.args("--width", "300")
-        self.assertIsNone(dl.record_for(p, "test", args))
-        p["imageinfo"][0].update(thumburl="https://upload.wikimedia.org/thumb.png",
-                                thumbmime="image/png", thumbwidth=300, thumbheight=225)
-        record = dl.record_for(p, "test", args)
-        self.assertEqual(record["width"], 300)
-        self.assertTrue(dl.filename(record).endswith(".png"))
+    def test_original_selected_even_when_thumbnail_available(self):
+        p = page()
+        info = p["imageinfo"][0]
+        info.update(thumburl="https://upload.wikimedia.org/thumb.jpg",
+                    thumbmime="image/jpeg", thumbwidth=300, thumbheight=225)
+        record = dl.record_for(p, "test", self.args())
+        self.assertEqual(record["download_url"], info["url"])
+        self.assertEqual((record["width"], record["height"]), (800, 600))
+        self.assertEqual(record["mime"], "image/png")
+        del info["url"]
+        self.assertIsNone(dl.record_for(p, "test", self.args()))
+        info["url"] = "https://upload.wikimedia.org/original.svg"
+        info["mime"] = "image/svg+xml"
+        self.assertIsNone(dl.record_for(p, "test", self.args()))
+
+    def test_discovery_never_requests_thumbnails(self):
+        client = dl.Client()
+        try:
+            client.api = Mock(return_value={"query": {"pages": [page()]}})
+            list(client.discover(self.args()))
+            params = client.api.call_args.kwargs
+            self.assertNotIn("iiurlwidth", params)
+            self.assertNotIn("thumbmime", params["iiprop"])
+        finally:
+            client.close()
+
+    def test_default_download_has_no_byte_cap(self):
+        args = self.args()
+        self.assertIsNone(args.max_bytes)
+        with tempfile.TemporaryDirectory() as directory:
+            payload = self.png()
+            client = Mock()
+            client.get.return_value = response(headers={"Content-Type": "image/png"}, payload=payload)
+            record = dl.record_for(page(), "test", args)
+            dl.save_image(client, record, Path(directory), args.max_bytes)
+            self.assertEqual((Path(directory) / record["local_file"]).read_bytes(), payload)
+            client.get.assert_called_once_with(record["original_url"], stream=True)
 
     def test_safe_filename(self):
         record = dl.record_for(page(), "test", self.args())

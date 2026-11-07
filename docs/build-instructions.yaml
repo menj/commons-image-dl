@@ -18,7 +18,7 @@ instruction: >-
 
 automatic_behavior:
   - A command starts discovery, filtering, selection and downloading without confirmation prompts.
-  - Download original files by default; use Commons thumbnail URLs when a width is requested.
+  - Always download the full-resolution current original; never request thumbnails or resize images.
   - Save attribution and structured metadata alongside each downloaded file.
   - Stop when the total requested count is satisfied, discovery is exhausted or the candidate budget is reached.
   - Report incomplete runs honestly with a nonzero exit status and retained partial results.
@@ -51,14 +51,13 @@ cli:
   controls:
     count: Total desired unique matching images across all supplied queries; default 10.
     output: Download directory; default downloads.
-    width: Optional requested Commons thumbnail width.
     min_width: Minimum original pixel width.
     min_height: Minimum original pixel height.
     formats: Downloaded raster MIME formats; default jpeg, png and webp.
     license: Repeatable exact case-insensitive LicenseShortName allowlist.
     language: Metadata language; default en.
     max_candidates: Candidate budget including rejected and duplicate files; default 1000.
-    max_bytes: Streamed byte limit per downloaded image; default 52428800.
+    max_bytes: Optional streamed byte limit per original; unlimited by default.
     user_agent: Identifiable tool User-Agent with an operator override.
     magnus: Optional metadata enrichment; failures do not block the primary download.
     dry_run: Write a discovery manifest without downloading image bytes.
@@ -86,9 +85,9 @@ api_implementation:
     - Pass all returned continuation keys unchanged and detect repeated continuation tokens.
     - Deduplicate page IDs, including across repeated queries.
     - Resolve exact filename redirects and skip missing or inaccessible files.
-    - Use thumburl and thumbmime for thumbnails; do not infer the output type from the original extension.
-    - Never silently replace a failed thumbnail request with a large original download.
-    - Filter non-image media; allow SVG sources only when downloading a supported raster thumbnail.
+    - Use the original imageinfo url, mime, width and height, ignoring thumbnail metadata.
+    - Never substitute a thumbnail when an original fails or exceeds an explicit byte limit.
+    - Filter non-image media and unsupported originals, including SVG; do not render raster substitutes.
   magnus:
     image: '<filename without File: prefix>'
     format: json

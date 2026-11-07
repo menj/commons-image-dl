@@ -160,8 +160,6 @@ class Client:
     def discover(self, args):
         info = {"prop": "imageinfo", "iiprop": "url|size|mime|sha1|extmetadata|timestamp|user",
                 "iiextmetadatalanguage": args.language}
-        if args.width:
-            info.update(iiurlwidth=args.width, iiprop=info["iiprop"] + "|thumbmime")
         if args.query or args.queries_file:
             queries = args.query or []
             if args.queries_file:
@@ -219,10 +217,9 @@ def record_for(page, source, args):
         return None
     if info.get("width", 0) < args.min_width or info.get("height", 0) < args.min_height:
         return None
-    thumb = bool(args.width and info.get("thumburl"))
-    if args.width and not thumb:
-        return None  # Never silently download a huge original instead of a thumbnail.
-    mime = info.get("thumbmime") if thumb else info.get("mime")
+    mime = info.get("mime")
+    if not info.get("url"):
+        return None
     if mime not in {MIMES[fmt] for fmt in args.formats}:
         return None
     raw = info.get("extmetadata", {})
@@ -232,11 +229,11 @@ def record_for(page, source, args):
         return None
     return {"page_id": page["pageid"], "title": page["title"], "discovery_source": source,
             "description_url": info.get("descriptionurl"), "original_url": info.get("url"),
-            "download_url": info.get("thumburl") if thumb else info.get("url"),
+            "download_url": info.get("url"),
             "mime": mime, "original_mime": info.get("mime"),
             "original_width": info.get("width"), "original_height": info.get("height"),
-            "width": info.get("thumbwidth") if thumb else info.get("width"),
-            "height": info.get("thumbheight") if thumb else info.get("height"),
+            "width": info.get("width"),
+            "height": info.get("height"),
             "source_sha1": info.get("sha1"), "upload_timestamp": info.get("timestamp"),
             "uploader": info.get("user"), "author": metadata.get("Artist", ""),
             "credit": metadata.get("Credit", ""), "license": license_name,
@@ -293,7 +290,7 @@ def save_image(client, record, output, max_bytes):
                 with temp.open("wb") as handle:
                     for chunk in response.iter_content(65536):
                         total += len(chunk)
-                        if total > max_bytes:
+                        if max_bytes is not None and total > max_bytes:
                             raise DownloadError("Image exceeds --max-bytes")
                         handle.write(chunk)
             with Image.open(temp) as image:
@@ -332,7 +329,6 @@ def parser():
     source.add_argument("--random", action="store_true")
     p.add_argument("--count", type=positive, default=10, help="Total images across all sources (default: 10)")
     p.add_argument("--output", type=Path, default=Path("downloads"))
-    p.add_argument("--width", type=positive, help="Download thumbnails at this requested width")
     p.add_argument("--min-width", type=positive, default=1, help="Minimum original width")
     p.add_argument("--min-height", type=positive, default=1, help="Minimum original height")
     p.add_argument("--formats", nargs="+", choices=sorted(MIMES), default=["jpeg", "png", "webp"])
@@ -340,7 +336,7 @@ def parser():
     p.add_argument("--language", default="en")
     p.add_argument("--radius", type=positive, default=1000, help="Geo radius in metres, 10 to 10000")
     p.add_argument("--max-candidates", type=positive, default=1000)
-    p.add_argument("--max-bytes", type=positive, default=52428800)
+    p.add_argument("--max-bytes", type=positive, help="Optional byte limit per original (default: unlimited)")
     p.add_argument("--user-agent", default=USER_AGENT)
     p.add_argument("--magnus", action="store_true", help="Include optional Magnus JSON and structured data")
     p.add_argument("--dry-run", action="store_true", help="Discover and save a manifest without downloading")
