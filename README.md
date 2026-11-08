@@ -21,6 +21,16 @@ python -m pip install .
 
 Use `commons-image-dl` after installation, or run `python commons_image_dl.py` from this directory. For development use `python -m pip install -e .`.
 
+## WordPress theme support
+
+The Python CLI is retained in full. An additional native PHP adapter can be
+bundled with a WordPress theme to search Commons and import full-resolution
+originals into the Media Library, preserving descriptions, attribution and
+Commons category tags. No Python installation is needed for the PHP adapter.
+
+See [WordPress integration](docs/wordpress-integration.md) for theme setup,
+search/import functions, secure admin form wiring and original-file handling.
+
 ## Automatically download images
 
 ```bash

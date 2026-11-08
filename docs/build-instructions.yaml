@@ -145,3 +145,16 @@ deliverables:
   - tests/test_downloader.py
   - .github/workflows/tests.yml
   - docs/build-instructions.yaml
+
+wordpress_integration:
+  entrypoint: wordpress/commons-image-dl.php
+  guide: docs/wordpress-integration.md
+  requirements:
+    - Keep the Python CLI and its existing commands intact; PHP support is additive.
+    - Allow themes to load the adapter once from functions.php without performing downloads on page views.
+    - Use WordPress HTTP and Media Library APIs; no Python process or shell execution required.
+    - Check upload_files and target post editing capabilities for imports; require nonces in caller endpoints.
+    - Resolve original URLs from Commons page IDs; never accept arbitrary import URLs or thumbnails.
+    - Preserve original image bytes without WordPress scaling, re-encoding or automatic rotation.
+    - Save descriptions, attribution and raw metadata; paginate non-hidden categories into attachment tags.
+    - Do not add a public import endpoint or modify unrelated uploads.
