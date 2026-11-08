@@ -148,13 +148,16 @@ deliverables:
 
 wordpress_integration:
   entrypoint: wordpress/commons-image-dl.php
+  core: commons_image_dl.py
   guide: docs/wordpress-integration.md
   requirements:
-    - Keep the Python CLI and its existing commands intact; PHP support is additive.
-    - Allow themes to load the adapter once from functions.php without performing downloads on page views.
-    - Use WordPress HTTP and Media Library APIs; no Python process or shell execution required.
-    - Check upload_files and target post editing capabilities for imports; require nonces in caller endpoints.
-    - Resolve original URLs from Commons page IDs; never accept arbitrary import URLs or thumbnails.
-    - Preserve original image bytes without WordPress scaling, re-encoding or automatic rotation.
-    - Save descriptions, attribution and raw metadata; paginate non-hidden categories into attachment tags.
-    - Do not add a public import endpoint or modify unrelated uploads.
+    - Python is the sole core for Commons discovery, HTTP, filtering, downloads and category metadata.
+    - PHP is only a WordPress bridge; do not duplicate the downloader or add PHP network fallbacks.
+    - Invoke Python through proc_open with an argument array, never a shell command string.
+    - Require trusted deployment configuration for the Python executable and core script paths.
+    - Preserve standalone Python commands; expose page-id selection and optional include-tags to both workflows.
+    - Gate calls by upload_files and target post edit permissions; caller endpoints must enforce nonces.
+    - Read Python manifests from private per-call directories and verify paths and SHA-256 before importing.
+    - Preserve original bytes without WordPress scaling or conversion; store descriptions, credits and tags.
+    - Terminate timed-out processes and clean private job files on completion or handled failure.
+    - Do not run downloads during frontend rendering or expose public import endpoints.

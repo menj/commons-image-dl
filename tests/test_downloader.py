@@ -89,6 +89,32 @@ class DownloaderTests(unittest.TestCase):
             self.assertEqual((Path(directory) / record["local_file"]).read_bytes(), payload)
             client.get.assert_called_once_with(record["original_url"], stream=True)
 
+    def test_page_id_discovery_uses_core_api(self):
+        client = dl.Client()
+        client.api = Mock(return_value={"query": {"pages": [page()]}})
+        try:
+            args = dl.parser().parse_args(["--page-id", "123", "--count", "1"])
+            found = list(client.discover(args))
+            self.assertEqual(len(found), 1)
+            self.assertEqual(client.api.call_args.kwargs["pageids"], 123)
+            self.assertNotIn("iiurlwidth", client.api.call_args.kwargs)
+        finally:
+            client.close()
+
+    def test_category_pagination_and_deduplication(self):
+        client = dl.Client()
+        client.api = Mock(side_effect=[
+            {"query": {"pages": [{"categories": [{"title": "Category:Penang"}]}]},
+             "continue": {"continue": "||", "clcontinue": "next"}},
+            {"query": {"pages": [{"categories": [{"title": "Category:Penang"},
+                                                   {"title": "Category:Mosques"}]}]}}])
+        try:
+            self.assertEqual(client.categories(123), ["Penang", "Mosques"])
+            self.assertEqual(client.api.call_args.kwargs["clcontinue"], "next")
+            self.assertEqual(client.api.call_args.kwargs["clshow"], "!hidden")
+        finally:
+            client.close()
+
     def test_safe_filename(self):
         record = dl.record_for(page(), "test", self.args())
         record["title"] = "File:../../CON\\name: bad.png"

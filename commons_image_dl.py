@@ -181,6 +181,10 @@ class Client:
                 title = re.sub(r"^(?:File|Image):", "", title)
                 for page in self.pages({**info, "titles": "File:" + title, "redirects": 1}, args):
                     yield page, title
+        elif args.page_id:
+            for page_id in args.page_id:
+                for page in self.pages({**info, "pageids": page_id}, args):
+                    yield page, str(page_id)
         elif args.uploader:
             for page in self.pages({**info, "generator": "allimages", "gaiuser": args.uploader,
                                     "gaisort": "timestamp", "gailimit": 20}, args):
@@ -199,6 +203,16 @@ class Client:
                     break
                 for page in pages:
                     yield page, "random"
+
+    def categories(self, page_id):
+        tags = []
+        for page in self.pages({"pageids": page_id, "prop": "categories",
+                                "clshow": "!hidden", "cllimit": "max"}, None):
+            for category in page.get("categories", []):
+                tag = plain(category.get("title", "").removeprefix("Category:"))
+                if tag and tag not in tags:
+                    tags.append(tag)
+        return tags
 
     def enrich(self, title, args):
         with self.get(MAGNUS, params={"image": title.removeprefix("File:"), "format": "json",
@@ -252,6 +266,8 @@ def filename(record):
 
 def attribution(record):
     return (f"{record['title']}\nAuthor: {record['author'] or 'Not supplied'}\n"
+            f"Description: {record.get('description') or 'Not supplied'}\n"
+            f"Tags: {', '.join(record.get('tags', [])) or 'Not supplied'}\n"
             f"Credit: {record['credit'] or 'Not supplied'}\n"
             f"Source: {record['description_url']}\n"
             f"License: {record['license'] or 'Not supplied'}\n"
@@ -324,6 +340,7 @@ def parser():
     source.add_argument("--queries-file", type=Path, help="UTF-8 file, one search phrase per line")
     source.add_argument("--category", help="Direct members only; optional Category: prefix")
     source.add_argument("--file", action="append", help="Exact filename; repeat for multiple files")
+    source.add_argument("--page-id", type=positive, action="append", help="Exact Commons page ID; repeat for multiple files")
     source.add_argument("--uploader", help="Files whose latest version was uploaded by this user")
     source.add_argument("--near", nargs=2, type=float, metavar=("LAT", "LON"))
     source.add_argument("--random", action="store_true")
@@ -338,6 +355,7 @@ def parser():
     p.add_argument("--max-candidates", type=positive, default=1000)
     p.add_argument("--max-bytes", type=positive, help="Optional byte limit per original (default: unlimited)")
     p.add_argument("--user-agent", default=USER_AGENT)
+    p.add_argument("--include-tags", action="store_true", help="Fetch all non-hidden Commons categories as tags")
     p.add_argument("--magnus", action="store_true", help="Include optional Magnus JSON and structured data")
     p.add_argument("--dry-run", action="store_true", help="Discover and save a manifest without downloading")
     p.add_argument("--verbose", action="store_true")
@@ -357,6 +375,8 @@ def run(args, client):
                 record = record_for(page, source, args)
                 if record:
                     try:
+                        if args.include_tags:
+                            record["tags"] = client.categories(record["page_id"])
                         if args.magnus:
                             try:
                                 record["magnus"] = client.enrich(record["title"], args)

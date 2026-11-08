@@ -23,13 +23,14 @@ Use `commons-image-dl` after installation, or run `python commons_image_dl.py` f
 
 ## WordPress theme support
 
-The Python CLI is retained in full. An additional native PHP adapter can be
-bundled with a WordPress theme to search Commons and import full-resolution
-originals into the Media Library, preserving descriptions, attribution and
-Commons category tags. No Python installation is needed for the PHP adapter.
+**Python is the core; PHP is the WordPress bridge.** Themes call the PHP bridge,
+which executes `commons_image_dl.py` for search, full-resolution downloads and
+metadata. PHP registers Python's downloaded originals in the Media Library with
+descriptions, attribution and Commons category tags. The standalone Python CLI
+continues to work independently. Server-side Python and `proc_open` are required.
 
-See [WordPress integration](docs/wordpress-integration.md) for theme setup,
-search/import functions, secure admin form wiring and original-file handling.
+See [WordPress integration](docs/wordpress-integration.md) for installation,
+configuration and secure theme integration.
 
 ## Automatically download images
 
@@ -45,6 +46,10 @@ python commons_image_dl.py --random --count 5
 Downloads always use the full-resolution original file supplied by Commons: the largest available size of the current file version. No thumbnails, resizing or format conversion are used. The former `--width` option has been removed; remove it from existing commands.
 
 Search results retain API relevance order. Category mode uses direct members only. Uploader mode means the uploader of the **latest file version**, not necessarily the photographer. Geographic discovery depends on Commons coordinates and may return fewer results than requested.
+
+Use `--include-tags` to fetch non-hidden Commons categories into the JSON metadata
+and readable text sidecars. `--page-id 123 --count 1` selects an exact Commons
+file page through the same core used by the WordPress bridge.
 
 ## Batch searches and filtering
 
